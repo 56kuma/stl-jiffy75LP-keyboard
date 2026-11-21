@@ -1,25 +1,27 @@
 """
-Jiffy75 (LP) split keyboard — back-to-back vertical stand ("Silver Spine").
+Jiffy75 (LP) split keyboard — back-to-back vertical stand ("Silver Rack").
 
 Both halves stand on their SHORT edge (127.7 mm side down), case bottoms
-facing each other, keycaps facing outward. A thin central blade (spine)
-separates the two cases.
+facing each other, keycaps facing outward.
 
-Stepped channel (fits the real cross-section of the board):
-  - only the ~10 mm case edge touches the floor  -> narrow, deep CASE slot
-  - keycaps overhang ~8-9 mm and float a few mm above the edge
-                                                   -> raised, shallow CAP shelf
+Structure (rack style):
+  - thin plate with chamfered (octagonal) corners
+  - low rails: one central spine rib + two end stops
+  - shallow grooves beside the spine: only the ~10 mm case edge sits in them,
+    the keycaps float above the plate top
+  - six slim posts: two on the spine (case backs lean on them) and two on each
+    outer side (1 mm away from the keycap faces); tapered with gable tips
 
-      outer wall | cap shelf | case slot | spine | case slot | cap shelf | wall
-                 |___________|           |  ||   |           |___________|
-                             |___________|  ||   |___________|
+      post │ plate (keycaps float) │ groove │ spine+post │ groove │ plate │ post
+           │_______________________│        │    ||      │        │_______│
+                                   │________│    ||      │________│
 
 Design rule: Silver ratio (白銀比 / 大和比, 1 : sqrt(2)).
-Every major dimension is taken from the ladder  S(k) = 200 / sqrt(2)^k :
-    k : 0     1      2    3     4    5     6    7     8     9     10   11
-    mm: 200  141.4  100  70.7  50   35.4  25   17.7  12.5  8.84  6.25 4.42
+Major dimensions come from the ladder  S(k) = 200 / sqrt(2)^k :
+    k : 1      2    3     4    5     6    7     8     9     10   11    12
+    mm: 141.4  100  70.7  50   35.4  25   17.7  12.5  8.84  6.25 4.42  3.125
 
-Usage:  python3 src/stand.py   ->  stl/jiffy75_stand.stl
+Usage:  python3 src/stand.py   ->  stl/jiffy75_stand.stl (+ fit test)
 """
 import math
 from pathlib import Path
@@ -44,39 +46,50 @@ KB_CAPS = 9.0         # mm  keycap overhang beyond the case (measured ~8-9 mm)
 KB_CAP_LIFT = 4.0     # mm  keycaps start this far above the standing edge
 
 # ---------------------------------------------------------------- stand
-# x: across (left/right), y: along the keyboard depth, z: up
-L = S(1)              # 141.4  base length       L : W = 2 = sqrt(2)^2
-W = S(3)              # 70.7   base width
-H = S(7)              # 17.7   base height
-CORNER_R = S(8)       # 12.5   plan corner radius (squircle)
-TOP_FILLET = S(11)    # 4.42   top edge round-over
-BOTTOM_CHAMFER = S(13)  # 2.21  45° shadow-line chamfer (floating look)
-
-CASE_W = S(8)         # 12.5   case slot width   (> KB_CASE + clearance)
-CASE_GAP = 0.75       # mm     spine face -> case back (case resting on the spine)
-CAP_GAP = 1.0         # mm     keycap face -> outer wall
-CAP_W = CASE_GAP + KB_CASE + KB_CAPS + CAP_GAP - CASE_W   # 8.75 keycap shelf width
-CH_L = KB_DEPTH + 3.5  # 131.2  channel length (keyboard + clearance)
-CH_DEPTH = S(8)       # 12.5   case slot depth (from top surface)
-CAP_STEP = S(12)      # 3.125  shelf raised above the slot floor (< KB_CAP_LIFT)
-CH_R = S(12)          # 3.125  channel corner radius
-CH_CHAMFER = S(14)    # 1.56   lead-in chamfer at channel mouth
+# Modelled with x = across (left/right), y = along keyboard depth, z = up.
+L = S(1)              # 141.4  plate length          L : W = 2 = sqrt(2)^2
+W = S(3)              # 70.7   plate width
+H = S(9)              # 8.84   plate thickness
+CORNER_C = S(9)       # 8.84   corner chamfer (octagonal plate)
+EDGE_C = S(14)        # 1.56   small chamfer on plate top / bottom edges
 
 FIN_T = S(10)         # 6.25   spine thickness
-FIN_L = S(2)          # 100    spine length          FIN_L : L = 1 : sqrt(2)
-FIN_TOP = S(3)        # 70.7   spine top height from desk (= base width W)
+CASE_GAP = 0.75       # mm     spine face -> case back
+CASE_W = S(8)         # 12.5   groove width for the case edge
+GROOVE_D = S(12)      # 3.125  groove depth (< KB_CAP_LIFT so keycaps float)
+CAP_GAP = 1.0         # mm     keycap face -> outer post
+CH_L = KB_DEPTH + 3.5  # 131.2 inner length between the end stops
+
+RAIL_H = S(10)        # 6.25   rail height above plate
+RAIL_T = S(11)        # 4.42   end-stop thickness
+RAIL_R = S(14)        # 1.56   rail top round-over
+
+POST_TOP = S(3)       # 70.7   post height from desk (= plate width)
+POST_Y = S(5)         # 35.4   post position along y (+/-); spacing = 70.7 = W
+POST_BASE_H = S(7)    # 17.7   height of the wider pedestal part
+OUT_T0, OUT_T1 = S(10), S(12)   # 6.25 -> 3.125  outer post thickness (x)
+OUT_D = S(10)                   # 6.25           outer post depth (y)
+CEN_T0, CEN_T1 = S(10), S(11)   # 6.25 -> 4.42   centre post thickness (x)
+CEN_D = S(8)                    # 12.5           centre post depth (y)
+PED = S(14)                     # 1.56           pedestal step
 
 FOOT_D = S(8)         # 12.5   rubber-foot recess diameter
 FOOT_DEPTH = 1.0
-FOOT_INSET = S(7)     # 17.7 / 12.5 (x uses smaller inset)
 
 SEG_CORNER = 24
-CH_W = CASE_W + CAP_W  # 21.25 total channel width per side
+
+# derived
+X_CASE_IN = FIN_T / 2                       # groove inner edge
+X_CASE_OUT = FIN_T / 2 + CASE_W             # groove outer edge
+X_POST_IN = FIN_T / 2 + CASE_GAP + KB_CASE + KB_CAPS + CAP_GAP   # 24.375
+CH_W = X_POST_IN - FIN_T / 2                # compatibility (channel width)
+CH_DEPTH = GROOVE_D                         # compatibility (floor = H - CH_DEPTH)
+
 assert CASE_W > KB_CASE + 1
-assert CAP_W > 0
-assert CAP_STEP < KB_CAP_LIFT, "keycaps would hit the shelf"
-assert 2 * CH_W + FIN_T < W - 2 * 6, "side walls too thin"
-assert CH_L < L - 2 * 4, "end walls too thin"
+assert GROOVE_D < KB_CAP_LIFT, "keycaps would hit the plate"
+assert X_POST_IN > X_CASE_OUT
+assert X_POST_IN + OUT_T0 + PED < W / 2, "outer posts overhang the plate"
+assert CH_L / 2 + RAIL_T < L / 2
 
 
 # ---------------------------------------------------------------- helpers
@@ -133,64 +146,69 @@ def loft(rings, zs):
     return m
 
 
+def octagon(hx, hy, c):
+    """Rectangle with 45° chamfered corners (8 points, loftable)."""
+    return np.array([(hx, -hy + c), (hx, hy - c), (hx - c, hy), (-hx + c, hy),
+                     (-hx, hy - c), (-hx, -hy + c), (-hx + c, -hy), (hx - c, -hy)])
+
+
+def rect(x0, x1, y0, y1):
+    return np.array([(x1, y0), (x1, y1), (x0, y1), (x0, y0)])
+
+
 # ---------------------------------------------------------------- parts
-def body():
+def plate():
+    k = math.sqrt(2) - 1           # chamfer shrink per unit inset
     zs, rings = [], []
-    for i in range(5):                       # bottom 45° chamfer
-        z = BOTTOM_CHAMFER * i / 4
-        d = BOTTOM_CHAMFER - z
+    for z, d in ((0, EDGE_C), (EDGE_C, 0), (H - EDGE_C, 0), (H, EDGE_C)):
         zs.append(z)
-        rings.append(squircle_rect(L / 2 - d, W / 2 - d, CORNER_R - d))
-    z0 = H - TOP_FILLET
-    for i in range(17):                      # wall + top round-over
-        a = (math.pi / 2) * i / 16
-        zs.append(z0 + TOP_FILLET * math.sin(a))
-        d = TOP_FILLET * (1 - math.cos(a))
-        rings.append(squircle_rect(L / 2 - d, W / 2 - d, CORNER_R - d))
+        rings.append(octagon(W / 2 - d, L / 2 - d, CORNER_C - d * k))
     return loft(rings, zs)
 
 
-def _cutter(hx, hy, z_floor, chamfer=True):
-    """Squircle-rect cutter from z_floor up through the top (+ lead-in)."""
-    ext = 2.0
-    if not chamfer:
-        return loft([squircle_rect(hx, hy, CH_R)] * 2, [z_floor, H + ext])
-    zs = [z_floor, H - CH_CHAMFER]
-    rings = [squircle_rect(hx, hy, CH_R), squircle_rect(hx, hy, CH_R)]
-    for i in range(1, 5):
-        g = (CH_CHAMFER + ext) * i / 4
-        zs.append(H - CH_CHAMFER + g)
-        rings.append(squircle_rect(hx + g, hy + g, CH_R + g))
+def rail(x0, x1, y0, y1):
+    """Low rail with rounded top edges (squircle section)."""
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    hx, hy = (x1 - x0) / 2, (y1 - y0) / 2
+    r = min(hx, hy) * 0.999
+    zs, rings = [H - 0.5, H + RAIL_H - RAIL_R], []
+    rings += [squircle_rect(hx, hy, r) + (cx, cy)] * 2
+    for i in range(1, 7):
+        a = (math.pi / 2) * i / 6
+        d = min(RAIL_R * (1 - math.cos(a)), r * 0.95)
+        zs.append(H + RAIL_H - RAIL_R + RAIL_R * math.sin(a))
+        rings.append(squircle_rect(hx - d, hy - d, r - d) + (cx, cy))
     return loft(rings, zs)
 
 
-def pocket():
-    """Shallow shelf pocket spanning everything + two deep, narrow case slots.
-    (Modelled with length along x, width along y; the spine is added later.)"""
-    z_slot = H - CH_DEPTH
-    shelf = _cutter(CH_L / 2, FIN_T / 2 + CH_W, z_slot + CAP_STEP)
-    cuts = [shelf]
-    for sy in (-1, 1):
-        slot = _cutter(CH_L / 2, (FIN_T + CASE_W) / 2, z_slot, chamfer=False)
-        slot.apply_translation((0, sy * (CASE_W / 2), 0))
-        cuts.append(slot)
-    return trimesh.boolean.union(cuts, engine="manifold")
+def post(x_in, side, t0, t1, d, y, keep_inner_face):
+    """Tapered post with a pedestal and a gable (ridge) tip.
+    x_in : x of the face that touches the keyboard (or centre if symmetric)."""
+    z0 = H - 0.5
+    tip = d / 2                                   # 45° gable
 
+    def ring(t, dd, ped=0.0):
+        if keep_inner_face:                       # outer post: flat inner face
+            xa, xb = x_in, x_in + side * (t + ped)
+        else:                                     # centre post: symmetric
+            xa, xb = -(t / 2), t / 2
+        x0, x1 = min(xa, xb), max(xa, xb)
+        return rect(x0, x1, y - dd / 2 - ped, y + dd / 2 + ped)
 
-def spine():
-    """Thin blade with a fully rounded top and stadium-shaped plan."""
-    hl, hw = FIN_L / 2, FIN_T / 2
-    z_start = H - CH_DEPTH - 0.5               # overlap with floor
-    z_round = FIN_TOP - hw
-    zs = [z_start, z_round]
-    rings = [stadium(hl, hw), stadium(hl, hw)]
-    for i in range(1, 13):
-        a = (math.pi / 2) * i / 12
-        d = hw * (1 - math.cos(a))
-        d = min(d, hw * 0.97)
-        zs.append(z_round + hw * math.sin(a))
-        rings.append(stadium(hl - d, hw - d))
+    t_ped = t0 + (t1 - t0) * (POST_BASE_H - H) / (POST_TOP - tip - H)
+    zs = [z0, POST_BASE_H, POST_BASE_H, POST_TOP - tip, POST_TOP]
+    rings = [ring(t0, d, PED), ring(t_ped, d, PED), ring(t_ped, d),
+             ring(t1, d), ring(t1, 0.6)]
     return loft(rings, zs)
+
+
+def grooves():
+    cuts = []
+    for s in (-1, 1):
+        x0, x1 = sorted((s * (X_CASE_IN - 0.01), s * X_CASE_OUT))
+        g = loft([rect(x0, x1, -CH_L / 2, CH_L / 2)] * 2, [H - GROOVE_D, H + 1])
+        cuts.append(g)
+    return cuts
 
 
 def feet():
@@ -199,29 +217,33 @@ def feet():
         for sy in (-1, 1):
             cyl = trimesh.creation.cylinder(radius=FOOT_D / 2,
                                             height=FOOT_DEPTH * 2, sections=64)
-            cyl.apply_translation((sx * (L / 2 - S(7)), sy * (W / 2 - S(8)), 0))
+            cyl.apply_translation((sx * (W / 2 - S(8)), sy * (L / 2 - S(7)), 0))
             cs.append(cyl)
     return cs
 
 
-def _rot_to_xy(m):
-    """Parts are modelled with length along x; rotate so length runs along y."""
-    m.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, (0, 0, 1)))
-    return m
-
-
 def build():
-    base = trimesh.boolean.difference([body(), pocket()] + feet(), engine="manifold")
-    result = trimesh.boolean.union([base, spine()], engine="manifold")
-    return _rot_to_xy(result)
+    base = trimesh.boolean.difference([plate()] + grooves() + feet(),
+                                      engine="manifold")
+    adds = [rail(-FIN_T / 2, FIN_T / 2, -CH_L / 2 - 0.1, CH_L / 2 + 0.1)]
+    for s in (-1, 1):                              # end stops
+        y0, y1 = sorted((s * CH_L / 2, s * (CH_L / 2 + RAIL_T)))
+        adds.append(rail(-X_POST_IN, X_POST_IN, y0, y1))
+    for y in (-POST_Y, POST_Y):
+        adds.append(post(0, 1, CEN_T0, CEN_T1, CEN_D, y, False))
+        for s in (-1, 1):
+            adds.append(post(s * X_POST_IN, s, OUT_T0, OUT_T1, OUT_D, y, True))
+    return trimesh.boolean.union([base] + adds, engine="manifold")
 
 
 def build_fit_test(length=S(6), height=S(5)):
-    """Short slice of the full profile for a quick fit-check print."""
+    """Short slice through one row of posts for a quick fit-check print."""
     full = build()
     box = trimesh.creation.box((W + 10, length, height))
-    box.apply_translation((0, 0, height / 2 - 1))
-    return trimesh.boolean.intersection([full, box], engine="manifold")
+    box.apply_translation((0, POST_Y, height / 2 - 1))
+    t = trimesh.boolean.intersection([full, box], engine="manifold")
+    t.apply_translation((0, -POST_Y, 0))
+    return t
 
 
 if __name__ == "__main__":
@@ -238,7 +260,5 @@ if __name__ == "__main__":
     t.export(out / "jiffy75_stand_fit_test.stl")
     print(f"fit test watertight={t.is_watertight} "
           f"size={' x '.join(f'{v:.1f}' for v in t.bounds[1]-t.bounds[0])}")
-    print(f"case slot {CASE_W:.1f} (depth {CH_DEPTH:.1f}), cap shelf {CAP_W:.1f} "
-          f"(+{CAP_STEP:.2f} step), length {CH_L:.1f}, "
-          f"spine t={FIN_T:.2f} L={FIN_L:.1f} top={FIN_TOP:.1f}, "
-          f"side wall={(W - 2*CH_W - FIN_T)/2:.2f}, end wall={(L-CH_L)/2:.2f}")
+    print(f"groove {CASE_W:.2f} x {GROOVE_D:.3f} deep, outer post inner face "
+          f"x=±{X_POST_IN:.3f}, posts at y=±{POST_Y:.1f}")
