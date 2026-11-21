@@ -12,7 +12,7 @@ def keyboard(height, side, depth=st.KB_DEPTH):
     """Half standing on its short edge; case back to the spine, keycaps outward.
     side = -1 (left channel) / +1 (right channel)."""
     floor = st.H - st.CH_DEPTH
-    x_case = side * (st.FIN_T / 2 + 0.75 + st.KB_CASE / 2)
+    x_case = side * (st.FIN_T / 2 + st.CASE_GAP + st.KB_CASE / 2)
     case = trimesh.creation.box((st.KB_CASE, depth, height))
     case.apply_translation((x_case, 0, floor + height / 2))
     cap_h = height - 2 * st.KB_CAP_LIFT

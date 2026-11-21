@@ -53,7 +53,9 @@ TOP_FILLET = S(11)    # 4.42   top edge round-over
 BOTTOM_CHAMFER = S(13)  # 2.21  45° shadow-line chamfer (floating look)
 
 CASE_W = S(8)         # 12.5   case slot width   (> KB_CASE + clearance)
-CAP_W = S(8)          # 12.5   keycap shelf width (> KB_CAPS + clearance)
+CASE_GAP = 0.75       # mm     spine face -> case back (case resting on the spine)
+CAP_GAP = 1.0         # mm     keycap face -> outer wall
+CAP_W = CASE_GAP + KB_CASE + KB_CAPS + CAP_GAP - CASE_W   # 8.75 keycap shelf width
 CH_L = KB_DEPTH + 3.5  # 131.2  channel length (keyboard + clearance)
 CH_DEPTH = S(8)       # 12.5   case slot depth (from top surface)
 CAP_STEP = S(12)      # 3.125  shelf raised above the slot floor (< KB_CAP_LIFT)
@@ -69,9 +71,9 @@ FOOT_DEPTH = 1.0
 FOOT_INSET = S(7)     # 17.7 / 12.5 (x uses smaller inset)
 
 SEG_CORNER = 24
-CH_W = CASE_W + CAP_W  # 25    total channel width per side
+CH_W = CASE_W + CAP_W  # 21.25 total channel width per side
 assert CASE_W > KB_CASE + 1
-assert CAP_W > KB_CAPS + 1
+assert CAP_W > 0
 assert CAP_STEP < KB_CAP_LIFT, "keycaps would hit the shelf"
 assert 2 * CH_W + FIN_T < W - 2 * 6, "side walls too thin"
 assert CH_L < L - 2 * 4, "end walls too thin"
