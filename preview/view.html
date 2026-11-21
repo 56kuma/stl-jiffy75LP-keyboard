@@ -1,0 +1,27 @@
+<!doctype html><html><body style="margin:0;background:#f5f5f7">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {STLLoader} from 'three/addons/loaders/STLLoader.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+const q=new URLSearchParams(location.search);
+const W=1600,H=1000;
+const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+r.setSize(W,H); r.shadowMap.enabled=true; r.shadowMap.type=THREE.PCFSoftShadowMap;
+r.toneMapping=THREE.ACESFilmicToneMapping; r.toneMappingExposure=1.0;
+document.body.appendChild(r.domElement);
+const s=new THREE.Scene(); s.background=new THREE.Color(q.get('bg')||'#f5f5f7');
+const pm=new THREE.PMREMGenerator(r); s.environment=pm.fromScene(new RoomEnvironment(),0.04).texture;
+const cam=new THREE.PerspectiveCamera(+q.get('fov')||22,W/H,1,5000);
+const d=JSON.parse(q.get('cam')); cam.position.set(...d.p); cam.up.set(0,0,1); cam.lookAt(...d.t);
+const L=new THREE.DirectionalLight(0xffffff,1.6); L.position.set(-200,-300,600); L.castShadow=true;
+L.shadow.mapSize.set(4096,4096); Object.assign(L.shadow.camera,{left:-300,right:300,top:300,bottom:-300,near:1,far:2000}); L.shadow.radius=8;
+s.add(L); s.add(new THREE.HemisphereLight(0xffffff,0xdddddd,0.5));
+const g=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.ShadowMaterial({opacity:0.12})); g.receiveShadow=true; s.add(g);
+const ld=new STLLoader();
+const parts=[['stand.stl',new THREE.MeshPhysicalMaterial({color:q.get('col')||'#d7d9dc',metalness:+(q.get('metal')||0.55),roughness:0.38,clearcoat:0.3})]];
+if(q.get('kb')) for(const f of ['kbl.stl','kbr.stl']) parts.push([f,new THREE.MeshPhysicalMaterial({color:'#3c3e44',metalness:0.35,roughness:0.5})]);
+let n=0;
+for(const [f,m] of parts) ld.load(f,geo=>{geo.computeVertexNormals();const me=new THREE.Mesh(geo,m);me.castShadow=me.receiveShadow=true;s.add(me);
+ if(++n==parts.length){r.render(s,cam);window.done=true;}});
+</script></body></html>
