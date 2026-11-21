@@ -1,11 +1,11 @@
 const {chromium}=require('playwright');
 const OUT=process.argv[2]||'../images';
 const shots=[
- ['hero.png',{cam:{p:[-330,-520,330],t:[0,0,10]}}],
- ['with_keyboard.png',{cam:{p:[-420,-620,330],t:[0,0,60]},kb:1}],
- ['side.png',{cam:{p:[900,0,70],t:[0,0,60]},kb:1,fov:16}],
- ['top.png',{cam:{p:[0,-1,800],t:[0,0,0]},fov:20}],
- ['space_gray.png',{cam:{p:[-330,-520,330],t:[0,0,10]},col:'#5b5d62',kb:0}],
+ ['hero.png',{cam:{p:[-330,-480,300],t:[0,0,25]}}],
+ ['with_keyboard.png',{cam:{p:[-380,-620,360],t:[0,0,80]},kb:1}],
+ ['front.png',{cam:{p:[0,-900,90],t:[0,0,80]},kb:1,fov:16}],
+ ['top.png',{cam:{p:[0,-1,800],t:[0,0,0]},fov:16}],
+ ['space_gray.png',{cam:{p:[-330,-480,300],t:[0,0,25]},col:'#5b5d62'}],
 ];
 (async()=>{const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const p=await b.newPage({viewport:{width:1600,height:1000}});

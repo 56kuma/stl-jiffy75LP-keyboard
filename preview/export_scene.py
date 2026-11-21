@@ -1,5 +1,5 @@
 """Export stand + simple keyboard-half proxies for the three.js preview."""
-import math, sys
+import sys
 from pathlib import Path
 import trimesh
 
@@ -8,23 +8,22 @@ sys.path.insert(0, str(ROOT / "src"))
 import stand as st
 
 
-def keyboard(width, y_mouth):
-    """Keyboard-half proxy (case 11mm + keycaps) standing in a slot."""
-    case = trimesh.creation.box((width, 11.0, st.KB_DEPTH))
-    caps = trimesh.creation.box((width - 6, 9.0, st.KB_DEPTH - 6))
-    caps.apply_translation((0, -10.0, 0))
-    kb = trimesh.util.concatenate([case, caps])
-    kb.apply_translation((0, st.SLOT_W / 2 - 6.0, st.KB_DEPTH / 2))
-    kb.apply_translation((0, 0, -st.SLOT_DEPTH / math.cos(st.LEAN) + 2.2))
-    kb.apply_transform(trimesh.transformations.rotation_matrix(-st.LEAN, (1, 0, 0)))
-    kb.apply_translation((0, y_mouth, st.H))
-    return kb
+def keyboard(height, side):
+    """Half standing on its short edge; case back to the spine, keycaps outward.
+    side = -1 (left channel) / +1 (right channel)."""
+    floor = st.H - st.CH_DEPTH
+    x_case = side * (st.FIN_T / 2 + 0.5 + st.KB_CASE / 2)
+    case = trimesh.creation.box((st.KB_CASE, st.KB_DEPTH, height))
+    case.apply_translation((x_case, 0, floor + height / 2))
+    caps = trimesh.creation.box((9.0, st.KB_DEPTH - 6, height - 6))
+    caps.apply_translation((x_case + side * (st.KB_CASE / 2 + 4.5), 0,
+                            floor + height / 2))
+    return trimesh.util.concatenate([case, caps])
 
 
 if __name__ == "__main__":
     here = Path(__file__).parent
-    g = st.SLOT_W * 2 + st.DIVIDER
-    keyboard(st.KB_LEFT_W, -g / 2 + st.SLOT_W / 2).export(here / "kbl.stl")
-    keyboard(st.KB_RIGHT_W, g / 2 - st.SLOT_W / 2).export(here / "kbr.stl")
+    keyboard(st.KB_LEFT_W, -1).export(here / "kbl.stl")
+    keyboard(st.KB_RIGHT_W, +1).export(here / "kbr.stl")
     st.build().export(here / "stand.stl")
     print("exported")

@@ -1,11 +1,14 @@
 """
-Jiffy75 (LP) split keyboard vertical stand generator.
+Jiffy75 (LP) split keyboard — back-to-back vertical stand ("Silver Spine").
+
+Both halves stand on their SHORT edge (127.7 mm side down), case bottoms
+facing each other, keycaps facing outward. A thin central blade (spine)
+separates the two cases; each half sits in its own channel.
 
 Design rule: Silver ratio (白銀比 / 大和比, 1 : sqrt(2)).
 Every major dimension is taken from the ladder  S(k) = 200 / sqrt(2)^k :
-    k : 0     1      2    3     4    5     6    7     8     9     10
-    mm: 200  141.4  100  70.7  50   35.4  25   17.7  12.5  8.84  6.25 ...
-The slot lean angle is also silver-derived: atan(1 / (4*sqrt(2))) ≈ 10.0°.
+    k : 0     1      2    3     4    5     6    7     8     9     10   11
+    mm: 200  141.4  100  70.7  50   35.4  25   17.7  12.5  8.84  6.25 4.42
 
 Usage:  python3 src/stand.py   ->  stl/jiffy75_stand.stl
 """
@@ -24,34 +27,39 @@ def S(k: float) -> float:
 
 
 # ---------------------------------------------------------------- keyboard
-KB_LEFT_W = 156.4     # mm  (left half width)
-KB_RIGHT_W = 176.1    # mm  (right half width)
-KB_DEPTH = 127.7      # mm  (front-back; becomes height when stood up)
-KB_THICK_MAX = 23.0   # mm  (case + keycaps)
+KB_LEFT_W = 156.4     # mm  left half width  (becomes height when stood up)
+KB_RIGHT_W = 176.1    # mm  right half width (becomes height when stood up)
+KB_DEPTH = 127.7      # mm  front-back depth (this edge sits on the stand)
+KB_CASE = 11.0        # mm  case thickness
+KB_THICK_MAX = 23.0   # mm  case + keycaps
 
 # ---------------------------------------------------------------- stand
-W = S(0)              # 200   overall width
-D = S(2)              # 100   overall depth          W:D = 2 = sqrt(2)^2
-H = S(6)              # 25    overall height         D:H = 4 = sqrt(2)^4
-CORNER_R = S(7)       # 17.7  plan corner radius (squircle)
-TOP_FILLET = S(10)    # 6.25  top edge round-over
+# x: across (left/right), y: along the keyboard depth, z: up
+L = S(1)              # 141.4  base length       L : W = 2 = sqrt(2)^2
+W = S(3)              # 70.7   base width
+H = S(7)              # 17.7   base height
+CORNER_R = S(8)       # 12.5   plan corner radius (squircle)
+TOP_FILLET = S(11)    # 4.42   top edge round-over
 BOTTOM_CHAMFER = S(13)  # 2.21  45° shadow-line chamfer (floating look)
 
-SLOT_W = S(6)         # 25    slot width  (> KB_THICK_MAX + clearance)
-SLOT_DEPTH = S(7)     # 17.7  vertical slot depth
-SLOT_END_MARGIN = S(9)  # 8.84 margin at slot ends
-SLOT_L = W - 2 * SLOT_END_MARGIN   # 182.3 (> 176.1 + clearance)
-DIVIDER = S(8)        # 12.5  wall between the two slots
-SLOT_CHAMFER = S(14)  # 1.56  lead-in chamfer at slot mouth
-LEAN = math.atan(1.0 / (4 * R2))   # ≈10.02°
+CH_W = S(6)           # 25     channel width per half (> KB_THICK_MAX + clearance)
+CH_L = KB_DEPTH + 3.5  # 131.2  channel length (keyboard + clearance)
+CH_DEPTH = S(8)       # 12.5   channel depth
+CH_R = S(12)          # 3.125  channel corner radius
+CH_CHAMFER = S(14)    # 1.56   lead-in chamfer at channel mouth
 
-FOOT_D = S(8)         # 12.5  rubber-foot recess diameter
+FIN_T = S(10)         # 6.25   spine thickness
+FIN_L = S(2)          # 100    spine length          FIN_L : L = 1 : sqrt(2)
+FIN_TOP = S(3)        # 70.7   spine top height from desk (= base width W)
+
+FOOT_D = S(8)         # 12.5   rubber-foot recess diameter
 FOOT_DEPTH = 1.0
-FOOT_INSET = S(7)     # 17.7
+FOOT_INSET = S(7)     # 17.7 / 12.5 (x uses smaller inset)
 
-SEG_CORNER = 24       # points per corner
-assert SLOT_L > KB_RIGHT_W + 4
-assert SLOT_W > KB_THICK_MAX + 1
+SEG_CORNER = 24
+assert CH_W > KB_THICK_MAX + 1
+assert 2 * CH_W + FIN_T < W - 2 * 6, "side walls too thin"
+assert CH_L < L - 2 * 4, "end walls too thin"
 
 
 # ---------------------------------------------------------------- helpers
@@ -108,52 +116,51 @@ def loft(rings, zs):
     return m
 
 
-# ---------------------------------------------------------------- body
+# ---------------------------------------------------------------- parts
 def body():
     zs, rings = [], []
-    # bottom 45° chamfer
-    for i in range(5):
+    for i in range(5):                       # bottom 45° chamfer
         z = BOTTOM_CHAMFER * i / 4
         d = BOTTOM_CHAMFER - z
         zs.append(z)
-        rings.append(squircle_rect(W / 2 - d, D / 2 - d, CORNER_R - d))
-    # vertical wall then top round-over
+        rings.append(squircle_rect(L / 2 - d, W / 2 - d, CORNER_R - d))
     z0 = H - TOP_FILLET
-    for i in range(0, 17):
+    for i in range(17):                      # wall + top round-over
         a = (math.pi / 2) * i / 16
-        z = z0 + TOP_FILLET * math.sin(a)
+        zs.append(z0 + TOP_FILLET * math.sin(a))
         d = TOP_FILLET * (1 - math.cos(a))
-        if i == 16:
-            d = min(d, CORNER_R * 0.9)
-        zs.append(z)
-        rings.append(squircle_rect(W / 2 - d, D / 2 - d, CORNER_R - d))
+        rings.append(squircle_rect(L / 2 - d, W / 2 - d, CORNER_R - d))
     return loft(rings, zs)
 
 
-def slot_cutter(y_center):
-    """Leaning stadium slot with lead-in chamfer, mouth centred at y_center."""
-    ext = 2.0                       # poke out above top
-    depth_axis = SLOT_DEPTH / math.cos(LEAN)
-    zs, rings = [], []
-    # local frame: z along slot axis, 0 = bottom, top = depth_axis+ext
-    zs.append(0.0)
-    rings.append(stadium(SLOT_L / 2, SLOT_W / 2))
-    zc = depth_axis - SLOT_CHAMFER
-    zs.append(zc)
-    rings.append(stadium(SLOT_L / 2, SLOT_W / 2))
+def pocket():
+    """One pocket spanning both channels (the spine is added back later)."""
+    hx, hy = CH_L / 2, CH_W + FIN_T / 2
+    z_floor = H - CH_DEPTH
+    zs = [z_floor, H - CH_CHAMFER]
+    rings = [squircle_rect(hx, hy, CH_R), squircle_rect(hx, hy, CH_R)]
+    ext = 2.0
     for i in range(1, 5):
-        t = i / 4
-        z = zc + (SLOT_CHAMFER + ext) * t
-        g = (SLOT_CHAMFER + ext) * t
-        zs.append(z)
-        rings.append(stadium(SLOT_L / 2 + g, SLOT_W / 2 + g))
-    c = loft(rings, zs)
-    # put the mouth centre (z = depth_axis) at origin, lean back about X
-    c.apply_translation((0, 0, -depth_axis))
-    rot = trimesh.transformations.rotation_matrix(-LEAN, (1, 0, 0))
-    c.apply_transform(rot)
-    c.apply_translation((0, y_center, H))
-    return c
+        g = (CH_CHAMFER + ext) * i / 4
+        zs.append(H - CH_CHAMFER + g)
+        rings.append(squircle_rect(hx + g, hy + g, CH_R + g))
+    return loft(rings, zs)
+
+
+def spine():
+    """Thin blade with a fully rounded top and stadium-shaped plan."""
+    hl, hw = FIN_L / 2, FIN_T / 2
+    z_start = H - CH_DEPTH - 0.5               # overlap with floor
+    z_round = FIN_TOP - hw
+    zs = [z_start, z_round]
+    rings = [stadium(hl, hw), stadium(hl, hw)]
+    for i in range(1, 13):
+        a = (math.pi / 2) * i / 12
+        d = hw * (1 - math.cos(a))
+        d = min(d, hw * 0.97)
+        zs.append(z_round + hw * math.sin(a))
+        rings.append(stadium(hl - d, hw - d))
+    return loft(rings, zs)
 
 
 def feet():
@@ -162,21 +169,21 @@ def feet():
         for sy in (-1, 1):
             cyl = trimesh.creation.cylinder(radius=FOOT_D / 2,
                                             height=FOOT_DEPTH * 2, sections=64)
-            cyl.apply_translation((sx * (W / 2 - FOOT_INSET),
-                                   sy * (D / 2 - FOOT_INSET), 0))
+            cyl.apply_translation((sx * (L / 2 - S(7)), sy * (W / 2 - S(8)), 0))
             cs.append(cyl)
     return cs
 
 
+def _rot_to_xy(m):
+    """Parts are modelled with length along x; rotate so length runs along y."""
+    m.apply_transform(trimesh.transformations.rotation_matrix(math.pi / 2, (0, 0, 1)))
+    return m
+
+
 def build():
-    # slot mouths centred as a group in depth (y: -front .. +back)
-    group = SLOT_W * 2 + DIVIDER
-    y_front = -group / 2 + SLOT_W / 2
-    y_back = group / 2 - SLOT_W / 2
-    solid = body()
-    cutters = [slot_cutter(y_front), slot_cutter(y_back)] + feet()
-    result = trimesh.boolean.difference([solid] + cutters, engine="manifold")
-    return result
+    base = trimesh.boolean.difference([body(), pocket()] + feet(), engine="manifold")
+    result = trimesh.boolean.union([base, spine()], engine="manifold")
+    return _rot_to_xy(result)
 
 
 if __name__ == "__main__":
@@ -189,5 +196,6 @@ if __name__ == "__main__":
     print(f"wrote {p}")
     print(f"watertight={m.is_watertight}  volume={m.volume/1000:.1f} cm3")
     print(f"size = {ext[0]:.1f} x {ext[1]:.1f} x {ext[2]:.1f} mm")
-    print(f"slot L={SLOT_L:.1f} W={SLOT_W:.1f} depth={SLOT_DEPTH:.1f} "
-          f"lean={math.degrees(LEAN):.2f} deg")
+    print(f"channel {CH_W:.1f} x {CH_L:.1f} x depth {CH_DEPTH:.1f}, "
+          f"spine t={FIN_T:.2f} L={FIN_L:.1f} top={FIN_TOP:.1f}, "
+          f"side wall={(W - 2*CH_W - FIN_T)/2:.2f}, end wall={(L-CH_L)/2:.2f}")
