@@ -40,7 +40,7 @@ def S(k: float) -> float:
 # ---------------------------------------------------------------- keyboard
 KB_LEFT_W = 156.4     # mm  left half width  (becomes height when stood up)
 KB_RIGHT_W = 176.1    # mm  right half width (becomes height when stood up)
-KB_DEPTH = 127.7      # mm  front-back depth (this edge sits on the stand)
+KB_DEPTH = 128.0      # mm  front-back depth (measured 128 mm; this edge sits on the stand)
 KB_CASE = 10.5        # mm  case edge thickness (measured ~10 mm)
 KB_CAPS = 9.0         # mm  keycap overhang beyond the case (measured ~8-9 mm)
 KB_CAP_LIFT = 4.0     # mm  keycaps start this far above the standing edge
@@ -58,7 +58,7 @@ CASE_GAP = 0.75       # mm     spine face -> case back
 CASE_W = S(8)         # 12.5   groove width for the case edge
 GROOVE_D = S(12)      # 3.125  groove depth (< KB_CAP_LIFT so keycaps float)
 CAP_GAP = 1.0         # mm     keycap face -> outer post
-CH_L = KB_DEPTH + 3.5  # 131.2 inner length between the end stops
+CH_L = KB_DEPTH + 1.0  # 129.0 groove length = inner length between the end stops
 
 RAIL_H = S(10)        # 6.25   rail height above plate
 RAIL_T = S(11)        # 4.42   end-stop thickness
