@@ -19,8 +19,8 @@ L.shadow.mapSize.set(4096,4096); Object.assign(L.shadow.camera,{left:-300,right:
 s.add(L); s.add(new THREE.HemisphereLight(0xffffff,0xdddddd,0.5));
 const g=new THREE.Mesh(new THREE.PlaneGeometry(4000,4000),new THREE.ShadowMaterial({opacity:0.12})); g.receiveShadow=true; s.add(g);
 const ld=new STLLoader();
-const parts=[['stand.stl',new THREE.MeshPhysicalMaterial({color:q.get('col')||'#d7d9dc',metalness:+(q.get('metal')||0.55),roughness:0.38,clearcoat:0.3})]];
-if(q.get('kb')) for(const f of ['kbl.stl','kbr.stl']) parts.push([f,new THREE.MeshPhysicalMaterial({color:'#3c3e44',metalness:0.35,roughness:0.5})]);
+const parts=[[q.get('stand')||'stand.stl',new THREE.MeshPhysicalMaterial({color:q.get('col')||'#d7d9dc',metalness:+(q.get('metal')||0.55),roughness:0.38,clearcoat:0.3})]];
+if(q.get('kb')) for(const f of (q.get('kbf')||'kbl.stl,kbr.stl').split(',')) parts.push([f,new THREE.MeshPhysicalMaterial({color:'#3c3e44',metalness:0.35,roughness:0.5})]);
 let n=0;
 for(const [f,m] of parts) ld.load(f,geo=>{geo.computeVertexNormals();const me=new THREE.Mesh(geo,m);me.castShadow=me.receiveShadow=true;s.add(me);
  if(++n==parts.length){r.render(s,cam);window.done=true;}});

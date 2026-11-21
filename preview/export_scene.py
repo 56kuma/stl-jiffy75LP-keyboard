@@ -8,16 +8,17 @@ sys.path.insert(0, str(ROOT / "src"))
 import stand as st
 
 
-def keyboard(height, side):
+def keyboard(height, side, depth=st.KB_DEPTH):
     """Half standing on its short edge; case back to the spine, keycaps outward.
     side = -1 (left channel) / +1 (right channel)."""
     floor = st.H - st.CH_DEPTH
-    x_case = side * (st.FIN_T / 2 + 0.5 + st.KB_CASE / 2)
-    case = trimesh.creation.box((st.KB_CASE, st.KB_DEPTH, height))
+    x_case = side * (st.FIN_T / 2 + 0.75 + st.KB_CASE / 2)
+    case = trimesh.creation.box((st.KB_CASE, depth, height))
     case.apply_translation((x_case, 0, floor + height / 2))
-    caps = trimesh.creation.box((9.0, st.KB_DEPTH - 6, height - 6))
-    caps.apply_translation((x_case + side * (st.KB_CASE / 2 + 4.5), 0,
-                            floor + height / 2))
+    cap_h = height - 2 * st.KB_CAP_LIFT
+    caps = trimesh.creation.box((st.KB_CAPS, depth - 6, cap_h))
+    caps.apply_translation((x_case + side * (st.KB_CASE + st.KB_CAPS) / 2, 0,
+                            floor + st.KB_CAP_LIFT + cap_h / 2))
     return trimesh.util.concatenate([case, caps])
 
 
@@ -26,4 +27,7 @@ if __name__ == "__main__":
     keyboard(st.KB_LEFT_W, -1).export(here / "kbl.stl")
     keyboard(st.KB_RIGHT_W, +1).export(here / "kbr.stl")
     st.build().export(here / "stand.stl")
+    st.build_fit_test().export(here / "fit.stl")
+    keyboard(60, -1, st.S(6) - 4).export(here / "kbl_cut.stl")
+    keyboard(60, +1, st.S(6) - 4).export(here / "kbr_cut.stl")
     print("exported")

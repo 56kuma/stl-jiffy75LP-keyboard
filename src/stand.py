@@ -3,7 +3,16 @@ Jiffy75 (LP) split keyboard — back-to-back vertical stand ("Silver Spine").
 
 Both halves stand on their SHORT edge (127.7 mm side down), case bottoms
 facing each other, keycaps facing outward. A thin central blade (spine)
-separates the two cases; each half sits in its own channel.
+separates the two cases.
+
+Stepped channel (fits the real cross-section of the board):
+  - only the ~10 mm case edge touches the floor  -> narrow, deep CASE slot
+  - keycaps overhang ~8-9 mm and float a few mm above the edge
+                                                   -> raised, shallow CAP shelf
+
+      outer wall | cap shelf | case slot | spine | case slot | cap shelf | wall
+                 |___________|           |  ||   |           |___________|
+                             |___________|  ||   |___________|
 
 Design rule: Silver ratio (白銀比 / 大和比, 1 : sqrt(2)).
 Every major dimension is taken from the ladder  S(k) = 200 / sqrt(2)^k :
@@ -30,8 +39,9 @@ def S(k: float) -> float:
 KB_LEFT_W = 156.4     # mm  left half width  (becomes height when stood up)
 KB_RIGHT_W = 176.1    # mm  right half width (becomes height when stood up)
 KB_DEPTH = 127.7      # mm  front-back depth (this edge sits on the stand)
-KB_CASE = 11.0        # mm  case thickness
-KB_THICK_MAX = 23.0   # mm  case + keycaps
+KB_CASE = 10.5        # mm  case edge thickness (measured ~10 mm)
+KB_CAPS = 9.0         # mm  keycap overhang beyond the case (measured ~8-9 mm)
+KB_CAP_LIFT = 4.0     # mm  keycaps start this far above the standing edge
 
 # ---------------------------------------------------------------- stand
 # x: across (left/right), y: along the keyboard depth, z: up
@@ -42,9 +52,11 @@ CORNER_R = S(8)       # 12.5   plan corner radius (squircle)
 TOP_FILLET = S(11)    # 4.42   top edge round-over
 BOTTOM_CHAMFER = S(13)  # 2.21  45° shadow-line chamfer (floating look)
 
-CH_W = S(6)           # 25     channel width per half (> KB_THICK_MAX + clearance)
+CASE_W = S(8)         # 12.5   case slot width   (> KB_CASE + clearance)
+CAP_W = S(8)          # 12.5   keycap shelf width (> KB_CAPS + clearance)
 CH_L = KB_DEPTH + 3.5  # 131.2  channel length (keyboard + clearance)
-CH_DEPTH = S(8)       # 12.5   channel depth
+CH_DEPTH = S(8)       # 12.5   case slot depth (from top surface)
+CAP_STEP = S(12)      # 3.125  shelf raised above the slot floor (< KB_CAP_LIFT)
 CH_R = S(12)          # 3.125  channel corner radius
 CH_CHAMFER = S(14)    # 1.56   lead-in chamfer at channel mouth
 
@@ -57,7 +69,10 @@ FOOT_DEPTH = 1.0
 FOOT_INSET = S(7)     # 17.7 / 12.5 (x uses smaller inset)
 
 SEG_CORNER = 24
-assert CH_W > KB_THICK_MAX + 1
+CH_W = CASE_W + CAP_W  # 25    total channel width per side
+assert CASE_W > KB_CASE + 1
+assert CAP_W > KB_CAPS + 1
+assert CAP_STEP < KB_CAP_LIFT, "keycaps would hit the shelf"
 assert 2 * CH_W + FIN_T < W - 2 * 6, "side walls too thin"
 assert CH_L < L - 2 * 4, "end walls too thin"
 
@@ -133,18 +148,31 @@ def body():
     return loft(rings, zs)
 
 
-def pocket():
-    """One pocket spanning both channels (the spine is added back later)."""
-    hx, hy = CH_L / 2, CH_W + FIN_T / 2
-    z_floor = H - CH_DEPTH
+def _cutter(hx, hy, z_floor, chamfer=True):
+    """Squircle-rect cutter from z_floor up through the top (+ lead-in)."""
+    ext = 2.0
+    if not chamfer:
+        return loft([squircle_rect(hx, hy, CH_R)] * 2, [z_floor, H + ext])
     zs = [z_floor, H - CH_CHAMFER]
     rings = [squircle_rect(hx, hy, CH_R), squircle_rect(hx, hy, CH_R)]
-    ext = 2.0
     for i in range(1, 5):
         g = (CH_CHAMFER + ext) * i / 4
         zs.append(H - CH_CHAMFER + g)
         rings.append(squircle_rect(hx + g, hy + g, CH_R + g))
     return loft(rings, zs)
+
+
+def pocket():
+    """Shallow shelf pocket spanning everything + two deep, narrow case slots.
+    (Modelled with length along x, width along y; the spine is added later.)"""
+    z_slot = H - CH_DEPTH
+    shelf = _cutter(CH_L / 2, FIN_T / 2 + CH_W, z_slot + CAP_STEP)
+    cuts = [shelf]
+    for sy in (-1, 1):
+        slot = _cutter(CH_L / 2, (FIN_T + CASE_W) / 2, z_slot, chamfer=False)
+        slot.apply_translation((0, sy * (CASE_W / 2), 0))
+        cuts.append(slot)
+    return trimesh.boolean.union(cuts, engine="manifold")
 
 
 def spine():
@@ -186,6 +214,14 @@ def build():
     return _rot_to_xy(result)
 
 
+def build_fit_test(length=S(6), height=S(5)):
+    """Short slice of the full profile for a quick fit-check print."""
+    full = build()
+    box = trimesh.creation.box((W + 10, length, height))
+    box.apply_translation((0, 0, height / 2 - 1))
+    return trimesh.boolean.intersection([full, box], engine="manifold")
+
+
 if __name__ == "__main__":
     out = Path(__file__).resolve().parent.parent / "stl"
     out.mkdir(exist_ok=True)
@@ -196,6 +232,11 @@ if __name__ == "__main__":
     print(f"wrote {p}")
     print(f"watertight={m.is_watertight}  volume={m.volume/1000:.1f} cm3")
     print(f"size = {ext[0]:.1f} x {ext[1]:.1f} x {ext[2]:.1f} mm")
-    print(f"channel {CH_W:.1f} x {CH_L:.1f} x depth {CH_DEPTH:.1f}, "
+    t = build_fit_test()
+    t.export(out / "jiffy75_stand_fit_test.stl")
+    print(f"fit test watertight={t.is_watertight} "
+          f"size={' x '.join(f'{v:.1f}' for v in t.bounds[1]-t.bounds[0])}")
+    print(f"case slot {CASE_W:.1f} (depth {CH_DEPTH:.1f}), cap shelf {CAP_W:.1f} "
+          f"(+{CAP_STEP:.2f} step), length {CH_L:.1f}, "
           f"spine t={FIN_T:.2f} L={FIN_L:.1f} top={FIN_TOP:.1f}, "
           f"side wall={(W - 2*CH_W - FIN_T)/2:.2f}, end wall={(L-CH_L)/2:.2f}")
