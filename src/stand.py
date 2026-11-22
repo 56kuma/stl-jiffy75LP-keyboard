@@ -12,9 +12,13 @@ Structure (rack style):
   - six slim posts: two on the spine (case backs lean on them) and two on each
     outer side (1 mm away from the keycap faces); tapered with gable tips
 
-      post │ plate (keycaps float) │ groove │ spine+post │ groove │ plate │ post
-           │_______________________│        │    ||      │        │_______│
-                                   │________│    ||      │________│
+      post │ plate (keycaps float) │ groove (case + feet zone) │ plate │ post
+           │_______________________│        spine+post         │_______│
+                                   │___________||______________│
+
+  The case backs have 5 mm feet near both ends of the standing edge. The case
+  backs are held 5.25 mm from the centre so the feet pass each other, and the
+  spine rail / centre posts stay clear of the last ~32 mm at each end.
 
 Design rule: Silver ratio (白銀比 / 大和比, 1 : sqrt(2)).
 Major dimensions come from the ladder  S(k) = 200 / sqrt(2)^k :
@@ -44,6 +48,10 @@ KB_DEPTH = 128.0      # mm  front-back depth (measured 128 mm; this edge sits on
 KB_CASE = 10.5        # mm  case edge thickness (measured ~10 mm)
 KB_CAPS = 9.0         # mm  keycap overhang beyond the case (measured ~8-9 mm)
 KB_CAP_LIFT = 4.0     # mm  keycaps start this far above the standing edge
+FOOT_H = 5.0          # mm  foot block protrusion from the case back (measured)
+FOOT_L = 20.0         # mm  foot length along the standing edge (measured 5 x 20)
+FOOT_W = 5.0          # mm  foot size perpendicular to the standing edge
+FOOT_CLR = 0.5        # mm  clearance between the two halves' feet (centre)
 
 # ---------------------------------------------------------------- stand
 # Modelled with x = across (left/right), y = along keyboard depth, z = up.
@@ -53,8 +61,7 @@ H = S(9)              # 8.84   plate thickness
 CORNER_C = S(9)       # 8.84   corner chamfer (octagonal plate)
 EDGE_C = S(14)        # 1.56   small chamfer on plate top / bottom edges
 
-FIN_T = S(10)         # 6.25   spine thickness
-CASE_GAP = 0.75       # mm     spine face -> case back
+CASE_GAP = 0.75       # mm     centre post face -> case back
 CASE_W = S(8)         # 12.5   groove width for the case edge
 GROOVE_D = S(12)      # 3.125  groove depth (< KB_CAP_LIFT so keycaps float)
 CAP_GAP = 1.0         # mm     keycap face -> outer post
@@ -65,11 +72,11 @@ RAIL_T = S(11)        # 4.42   end-stop thickness
 RAIL_R = S(14)        # 1.56   rail top round-over
 
 POST_TOP = S(3)       # 70.7   post height from desk (= plate width)
-POST_Y = S(5)         # 35.4   post position along y (+/-); spacing = 70.7 = W
+POST_Y = S(6)         # 25     post position along y (+/-); spacing = 50 = S(4)
 POST_BASE_H = S(7)    # 17.7   height of the wider pedestal part
 OUT_T0, OUT_T1 = S(10), S(12)   # 6.25 -> 3.125  outer post thickness (x)
 OUT_D = S(10)                   # 6.25           outer post depth (y)
-CEN_T0, CEN_T1 = S(10), S(11)   # 6.25 -> 4.42   centre post thickness (x)
+TAPER = S(10) - S(11)           # 1.83           post taper (silver-ladder step)
 CEN_D = S(8)                    # 12.5           centre post depth (y)
 PED = S(14)                     # 1.56           pedestal step
 
@@ -79,15 +86,22 @@ FOOT_DEPTH = 1.0
 SEG_CORNER = 24
 
 # derived
-X_CASE_IN = FIN_T / 2                       # groove inner edge
-X_CASE_OUT = FIN_T / 2 + CASE_W             # groove outer edge
-X_POST_IN = FIN_T / 2 + CASE_GAP + KB_CASE + KB_CAPS + CAP_GAP   # 24.375
+# Case backs sit FOOT_H + FOOT_CLR/2 from the centre, so the feet near both
+# ends of the standing edge pass each other freely (feet act as spacers).
+X_BACK = FOOT_H + FOOT_CLR / 2                       # 5.25  case back
+FIN_T = 2 * (X_BACK - CASE_GAP)                      # 9.0   spine / centre post
+CEN_T0, CEN_T1 = FIN_T, FIN_T - TAPER                # 9.0 -> 7.17
+X_CASE_OUT = X_BACK + KB_CASE + (CASE_W - KB_CASE - CASE_GAP)   # groove outer edge
+X_POST_IN = X_BACK + KB_CASE + KB_CAPS + CAP_GAP     # 25.75 outer post face
 CH_W = X_POST_IN - FIN_T / 2                # compatibility (channel width)
 CH_DEPTH = GROOVE_D                         # compatibility (floor = H - CH_DEPTH)
+SPINE_Y = POST_Y + CEN_D / 2 + PED          # spine rail ends at the centre posts
+FEET_ZONE = CH_L / 2 - SPINE_Y               # free length at each end for the feet
 
 assert CASE_W > KB_CASE + 1
 assert GROOVE_D < KB_CAP_LIFT, "keycaps would hit the plate"
 assert X_POST_IN > X_CASE_OUT
+assert FEET_ZONE >= FOOT_L + 5, "not enough room for the feet at the ends"
 assert X_POST_IN + OUT_T0 + PED < W / 2, "outer posts overhang the plate"
 assert CH_L / 2 + RAIL_T < L / 2
 
@@ -171,7 +185,7 @@ def rail(x0, x1, y0, y1):
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     hx, hy = (x1 - x0) / 2, (y1 - y0) / 2
     r = min(hx, hy) * 0.999
-    zs, rings = [H - 0.5, H + RAIL_H - RAIL_R], []
+    zs, rings = [H - GROOVE_D - 0.5, H + RAIL_H - RAIL_R], []
     rings += [squircle_rect(hx, hy, r) + (cx, cy)] * 2
     for i in range(1, 7):
         a = (math.pi / 2) * i / 6
@@ -184,7 +198,7 @@ def rail(x0, x1, y0, y1):
 def post(x_in, side, t0, t1, d, y, keep_inner_face):
     """Tapered post with a pedestal and a gable (ridge) tip.
     x_in : x of the face that touches the keyboard (or centre if symmetric)."""
-    z0 = H - 0.5
+    z0 = H - GROOVE_D - 0.5
     tip = d / 2                                   # 45° gable
 
     def ring(t, dd, ped=0.0):
@@ -203,12 +217,10 @@ def post(x_in, side, t0, t1, d, y, keep_inner_face):
 
 
 def grooves():
-    cuts = []
-    for s in (-1, 1):
-        x0, x1 = sorted((s * (X_CASE_IN - 0.01), s * X_CASE_OUT))
-        g = loft([rect(x0, x1, -CH_L / 2, CH_L / 2)] * 2, [H - GROOVE_D, H + 1])
-        cuts.append(g)
-    return cuts
+    """One wide groove: both case edges + the feet zone between them."""
+    g = loft([rect(-X_CASE_OUT, X_CASE_OUT, -CH_L / 2, CH_L / 2)] * 2,
+             [H - GROOVE_D, H + 1])
+    return [g]
 
 
 def feet():
@@ -225,7 +237,7 @@ def feet():
 def build():
     base = trimesh.boolean.difference([plate()] + grooves() + feet(),
                                       engine="manifold")
-    adds = [rail(-FIN_T / 2, FIN_T / 2, -CH_L / 2 - 0.1, CH_L / 2 + 0.1)]
+    adds = [rail(-FIN_T / 2, FIN_T / 2, -SPINE_Y, SPINE_Y)]
     for s in (-1, 1):                              # end stops
         y0, y1 = sorted((s * CH_L / 2, s * (CH_L / 2 + RAIL_T)))
         adds.append(rail(-X_POST_IN, X_POST_IN, y0, y1))
@@ -236,13 +248,15 @@ def build():
     return trimesh.boolean.union([base] + adds, engine="manifold")
 
 
-def build_fit_test(length=S(6), height=S(5)):
-    """Short slice through one row of posts for a quick fit-check print."""
+def build_fit_test(height=S(5)):
+    """One end of the stand (end stop + feet zone + one row of posts),
+    cut at `height`, for a quick fit-check print."""
     full = build()
-    box = trimesh.creation.box((W + 10, length, height))
-    box.apply_translation((0, POST_Y, height / 2 - 1))
+    y0, y1 = POST_Y - CEN_D / 2 - PED - 2, L / 2 + 1
+    box = trimesh.creation.box((W + 10, y1 - y0, height))
+    box.apply_translation((0, (y0 + y1) / 2, height / 2 - 1))
     t = trimesh.boolean.intersection([full, box], engine="manifold")
-    t.apply_translation((0, -POST_Y, 0))
+    t.apply_translation((0, -(y0 + y1) / 2, 0))
     return t
 
 
@@ -260,5 +274,8 @@ if __name__ == "__main__":
     t.export(out / "jiffy75_stand_fit_test.stl")
     print(f"fit test watertight={t.is_watertight} "
           f"size={' x '.join(f'{v:.1f}' for v in t.bounds[1]-t.bounds[0])}")
+    print(f"case back x=±{X_BACK:.2f}, centre post {CEN_T0:.2f}->{CEN_T1:.2f}, "
+          f"spine rail y=±{SPINE_Y:.2f}, feet zone {FEET_ZONE:.1f} mm/end, "
+          f"groove x=±{X_CASE_OUT:.2f}")
     print(f"groove {CASE_W:.2f} x {GROOVE_D:.3f} deep, outer post inner face "
           f"x=±{X_POST_IN:.3f}, posts at y=±{POST_Y:.1f}")
