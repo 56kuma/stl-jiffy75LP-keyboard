@@ -19,7 +19,8 @@ Structure (rack style):
   The case backs have 5 mm feet near both ends of the standing edge. The case
   backs are held 5.25 mm from the centre so the feet pass each other, and the
   spine rail / centre posts stay clear of the last ~32 mm at the +y end
-  (the -y end keeps the spine rail up to the end stop).
+  (the -y end keeps the spine rail up to the end stop; the +y end only has
+  a 1 mm low rail above the groove floor).
 
 Design rule: Silver ratio (白銀比 / 大和比, 1 : sqrt(2)).
 Major dimensions come from the ladder  S(k) = 200 / sqrt(2)^k :
@@ -100,6 +101,7 @@ SPINE_Y = POST_Y + CEN_D / 2 + PED          # spine rail ends at the centre post
 FEET_ZONE = CH_L / 2 - SPINE_Y               # free length at the feet end
 SPINE_FULL_END = -1   # this end (-y / +y) keeps the spine rail up to the end stop;
                       # the other end stays open for the feet
+SPINE_OPEN_H = 1.0    # mm  low rail on the open (feet) end, above the groove floor
 
 assert CASE_W > KB_CASE + 1
 assert GROOVE_D < KB_CAP_LIFT, "keycaps would hit the plate"
@@ -242,6 +244,13 @@ def build():
                                       engine="manifold")
     ya, yb = sorted((SPINE_FULL_END * (CH_L / 2 + 0.1), -SPINE_FULL_END * SPINE_Y))
     adds = [rail(-FIN_T / 2, FIN_T / 2, ya, yb)]
+    if SPINE_OPEN_H > 0:                           # low rail on the feet end
+        yc, yd = sorted((-SPINE_FULL_END * (SPINE_Y - 0.1),
+                         -SPINE_FULL_END * (CH_L / 2 + 0.1)))
+        z_floor = H - GROOVE_D
+        adds.append(loft([squircle_rect(FIN_T / 2, (yd - yc) / 2, 0.5)
+                          + (0, (yc + yd) / 2)] * 2,
+                         [z_floor - 0.5, z_floor + SPINE_OPEN_H]))
     for s in (-1, 1):                              # end stops
         y0, y1 = sorted((s * CH_L / 2, s * (CH_L / 2 + RAIL_T)))
         adds.append(rail(-X_POST_IN, X_POST_IN, y0, y1))
@@ -279,8 +288,8 @@ def build_fit_test():
     for sx in (-1, 1):   # plate under the floating keycaps
         xa, xb = X_CASE_OUT + FIT_RIM, X_POST_IN - FIT_RIM
         wins.append((sx * (xa + xb) / 2, xb - xa))
-    xc = X_BACK - FIT_RIM                                     # feet zone (centre)
-    wins.append((0.0, 2 * xc))
+    if SPINE_OPEN_H <= 0:                                     # feet zone (centre)
+        wins.append((0.0, 2 * (X_BACK - FIT_RIM)))
     for cx, wx in wins:
         w = trimesh.creation.box((wx, yw1 - yw0, 100))
         w.apply_translation((cx, (yw0 + yw1) / 2, 0))
