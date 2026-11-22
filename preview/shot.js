@@ -5,8 +5,8 @@ const shots=[
  ['with_keyboard.png',{cam:{p:[-380,-620,360],t:[0,0,80]},kb:1}],
  ['front.png',{cam:{p:[0,-900,90],t:[0,0,80]},kb:1,fov:16}],
  ['top.png',{cam:{p:[0,-1,800],t:[0,0,0]},fov:16}],
- ['fit_test.png',{cam:{p:[-200,-260,200],t:[0,0,12]},stand:'fit.stl'}],
- ['section.png',{cam:{p:[0,-700,30],t:[0,0,30]},stand:'fit.stl',kb:1,kbf:'kbl_cut.stl,kbr_cut.stl',fov:12}],
+ ['fit_test.png',{cam:{p:[-170,-230,190],t:[0,0,4]},stand:'fit.stl'}],
+ ['section.png',{cam:{p:[0,-700,30],t:[0,0,30]},stand:'sect.stl',kb:1,kbf:'kbl_cut.stl,kbr_cut.stl',fov:12}],
  ['space_gray.png',{cam:{p:[-330,-480,300],t:[0,0,25]},col:'#5b5d62'}],
 ];
 (async()=>{const b=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});

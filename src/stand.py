@@ -248,15 +248,41 @@ def build():
     return trimesh.boolean.union([base] + adds, engine="manifold")
 
 
-def build_fit_test(height=S(5)):
-    """One end of the stand (end stop + feet zone + one row of posts),
-    cut at `height`, for a quick fit-check print."""
+FIT_FLOOR = 1.2       # mm  floor kept under the groove in the fit test
+FIT_ABOVE = 8.0       # mm  post height kept above the plate (keycaps start at +0.9)
+FIT_RIM = 1.5         # mm  material kept around the lightening windows
+
+
+def build_fit_test():
+    """Light, fast fit-check print of one end of the stand:
+    end stop + feet zone + one row of posts.
+      - only the functional height is kept (posts cut FIT_ABOVE above the plate)
+      - the bottom is removed, leaving FIT_FLOOR under the groove
+      - windows are cut where nothing touches the keyboard
+    """
     full = build()
     y0, y1 = POST_Y - CEN_D / 2 - PED - 2, L / 2 + 1
-    box = trimesh.creation.box((W + 10, y1 - y0, height))
-    box.apply_translation((0, (y0 + y1) / 2, height / 2 - 1))
+    z0 = H - GROOVE_D - FIT_FLOOR
+    z1 = H + FIT_ABOVE
+    box = trimesh.creation.box((W + 10, y1 - y0, z1 - z0))
+    box.apply_translation((0, (y0 + y1) / 2, (z0 + z1) / 2))
     t = trimesh.boolean.intersection([full, box], engine="manifold")
-    t.apply_translation((0, -(y0 + y1) / 2, 0))
+
+    # lightening windows (through the whole remaining thickness)
+    yw0 = POST_Y + max(OUT_D, CEN_D) / 2 + PED + FIT_RIM     # past the posts
+    yw1 = CH_L / 2 - FIT_RIM                                  # before end stop
+    wins = []
+    for sx in (-1, 1):   # plate under the floating keycaps
+        xa, xb = X_CASE_OUT + FIT_RIM, X_POST_IN - FIT_RIM
+        wins.append((sx * (xa + xb) / 2, xb - xa))
+    xc = X_BACK - FIT_RIM                                     # feet zone (centre)
+    wins.append((0.0, 2 * xc))
+    for cx, wx in wins:
+        w = trimesh.creation.box((wx, yw1 - yw0, 100))
+        w.apply_translation((cx, (yw0 + yw1) / 2, 0))
+        t = trimesh.boolean.difference([t, w], engine="manifold")
+
+    t.apply_translation((0, -(y0 + y1) / 2, -z0))
     return t
 
 

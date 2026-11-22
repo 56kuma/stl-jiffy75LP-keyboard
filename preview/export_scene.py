@@ -36,6 +36,12 @@ if __name__ == "__main__":
     keyboard(st.KB_RIGHT_W, +1).export(here / "kbr.stl")
     st.build().export(here / "stand.stl")
     st.build_fit_test().export(here / "fit.stl")
+    full = st.build()                              # cross-section through posts
+    slab = trimesh.creation.box((st.W + 10, st.S(6), st.S(5)))
+    slab.apply_translation((0, st.POST_Y, st.S(5) / 2 - 1))
+    sect = trimesh.boolean.intersection([full, slab], engine="manifold")
+    sect.apply_translation((0, -st.POST_Y, 0))
+    sect.export(here / "sect.stl")
     keyboard(12, -1).export(here / "kbl_low.stl")   # short proxies: top view
     keyboard(12, +1).export(here / "kbr_low.stl")
     keyboard(60, -1, st.S(6) - 4).export(here / "kbl_cut.stl")
