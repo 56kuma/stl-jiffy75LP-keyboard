@@ -18,7 +18,8 @@ Structure (rack style):
 
   The case backs have 5 mm feet near both ends of the standing edge. The case
   backs are held 5.25 mm from the centre so the feet pass each other, and the
-  spine rail / centre posts stay clear of the last ~32 mm at each end.
+  spine rail / centre posts stay clear of the last ~32 mm at the +y end
+  (the -y end keeps the spine rail up to the end stop).
 
 Design rule: Silver ratio (白銀比 / 大和比, 1 : sqrt(2)).
 Major dimensions come from the ladder  S(k) = 200 / sqrt(2)^k :
@@ -96,7 +97,9 @@ X_POST_IN = X_BACK + KB_CASE + KB_CAPS + CAP_GAP     # 25.75 outer post face
 CH_W = X_POST_IN - FIN_T / 2                # compatibility (channel width)
 CH_DEPTH = GROOVE_D                         # compatibility (floor = H - CH_DEPTH)
 SPINE_Y = POST_Y + CEN_D / 2 + PED          # spine rail ends at the centre posts
-FEET_ZONE = CH_L / 2 - SPINE_Y               # free length at each end for the feet
+FEET_ZONE = CH_L / 2 - SPINE_Y               # free length at the feet end
+SPINE_FULL_END = -1   # this end (-y / +y) keeps the spine rail up to the end stop;
+                      # the other end stays open for the feet
 
 assert CASE_W > KB_CASE + 1
 assert GROOVE_D < KB_CAP_LIFT, "keycaps would hit the plate"
@@ -237,7 +240,8 @@ def feet():
 def build():
     base = trimesh.boolean.difference([plate()] + grooves() + feet(),
                                       engine="manifold")
-    adds = [rail(-FIN_T / 2, FIN_T / 2, -SPINE_Y, SPINE_Y)]
+    ya, yb = sorted((SPINE_FULL_END * (CH_L / 2 + 0.1), -SPINE_FULL_END * SPINE_Y))
+    adds = [rail(-FIN_T / 2, FIN_T / 2, ya, yb)]
     for s in (-1, 1):                              # end stops
         y0, y1 = sorted((s * CH_L / 2, s * (CH_L / 2 + RAIL_T)))
         adds.append(rail(-X_POST_IN, X_POST_IN, y0, y1))

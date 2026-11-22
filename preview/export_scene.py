@@ -20,8 +20,8 @@ def keyboard(height, side, depth=st.KB_DEPTH):
     caps.apply_translation((x_case + side * (st.KB_CASE + st.KB_CAPS) / 2, 0,
                             floor + st.KB_CAP_LIFT + cap_h / 2))
     parts = [case, caps]
-    if depth >= st.KB_DEPTH:                      # feet near both ends
-        for sy in (-1, 1):
+    if depth >= st.KB_DEPTH:                      # feet at the open end only
+        for sy in (-st.SPINE_FULL_END,):
             f = trimesh.creation.box((st.FOOT_H, st.FOOT_L, st.FOOT_W))
             f.apply_translation((side * (st.X_BACK - st.FOOT_H / 2),
                                  sy * (depth / 2 - st.FOOT_L / 2 - 2),
