@@ -115,3 +115,10 @@ python3 src/stand.py
 - [KeyLab DB – Low-Profile Split Keyboards Compared](https://www.keylabdb.com/en/blog/low-profile-split-keyboards-compared)
 - [green-keys – Jiffy75 (SP75) Advance Review](https://green-keys.info/en/jezailfunder-jiffy75-sp75-advance-review%EF%BD%9Ceasy-to-use-left-right-split-75-keyboard-with-low-switching-costs/)
 - [Keyboard Builders' Digest – Jiffy75 review](https://kbd.news/Jiffy75-review-2818.html)
+
+## ライセンス
+
+[MIT License](LICENSE) © 2026 56kuma
+
+STL・生成スクリプト（`src/`）・プレビュー用スクリプト（`preview/`）・画像を含む、このリポジトリのすべてのファイルに適用されます。
+JezailFunder / Jiffy75 は各権利者の名称で、このリポジトリは非公式のファン製作物です。
